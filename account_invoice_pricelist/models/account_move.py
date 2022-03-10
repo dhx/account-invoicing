@@ -98,8 +98,9 @@ class AccountMoveLine(models.Model):
                 sel.with_context(check_move_validity=False).update(
                     {"price_unit": price_unit}
                 )
+                return
             else:
-                super(AccountMoveLine, self)._onchange_uom_id()
+                return super(AccountMoveLine, self)._onchange_uom_id()
 
     def _get_real_price_currency(self, product, rule_id, qty, uom, pricelist_id):
         PricelistItem = self.env["product.pricelist.item"]
@@ -188,19 +189,17 @@ class AccountMoveLine(models.Model):
                 )
                 self.with_context(check_move_validity=False).discount = 0.0
             else:
-                product_context = dict(
-                    self.env.context,
+                final_price, rule_id = self.move_id.pricelist_id.with_context(
                     partner_id=self.move_id.partner_id.id,
                     date=self.move_id.invoice_date or fields.Date.today(),
                     uom=self.product_uom_id.id,
-                )
-                final_price, rule_id = self.move_id.pricelist_id.with_context(
-                    product_context
                 ).get_product_price_rule(
                     self.product_id, self.quantity or 1.0, self.move_id.partner_id
                 )
                 base_price, currency = self.with_context(
-                    product_context
+                    partner_id=self.move_id.partner_id.id,
+                    date=self.move_id.invoice_date or fields.Date.today(),
+                    uom=self.product_uom_id.id,
                 )._get_real_price_currency(
                     self.product_id,
                     rule_id,
