@@ -6,7 +6,7 @@ import inspect
 from odoo.exceptions import UserError
 from odoo.tests import common
 
-from odoo.addons.sale.models.sale import SaleOrderLine as upstream
+from odoo.addons.sale.models.sale_order_line import SaleOrderLine as upstream
 
 # if this hash fails then the original function it was copied from
 # needs to be checked to see if there are any major changes that
@@ -15,7 +15,7 @@ from odoo.addons.sale.models.sale import SaleOrderLine as upstream
 VALID_HASHES = ["7c0bb27c20598327008f81aee58cdfb4"]
 
 
-class TestAccountMovePricelist(common.SavepointCase):
+class TestAccountMovePricelist(common.TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
