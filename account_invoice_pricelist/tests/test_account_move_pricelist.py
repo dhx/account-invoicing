@@ -12,7 +12,7 @@ from odoo.addons.sale.models.sale_order_line import SaleOrderLine as upstream
 # needs to be checked to see if there are any major changes that
 # need to be updated in this module's _get_real_price_currency
 
-VALID_HASHES = ["7c0bb27c20598327008f81aee58cdfb4"]
+VALID_HASHES = ["ae1579f90ae87798e0d86f6b7427d4aa"]
 
 
 class TestAccountMovePricelist(common.TransactionCase):
@@ -28,6 +28,15 @@ class TestAccountMovePricelist(common.TransactionCase):
         cls.journal_sale = cls.env["account.journal"].create(
             {"name": "Test sale journal", "type": "sale", "code": "TEST_SJ"}
         )
+        cls.currency_usd = cls.env.ref("base.USD")
+        cls.currency_usd.active = True
+        # Make sure the currency of the company is USD, as this not always happens
+        # To be removed in V17: https://github.com/odoo/odoo/pull/107113
+        cls.company = cls.env.company
+        cls.env.cr.execute(
+            "UPDATE res_company SET currency_id = %s WHERE id = %s",
+            (cls.currency_usd.id, cls.company.id),
+        )
         cls.at_receivable = cls.env["account.account.type"].create(
             {
                 "name": "Test receivable account",
@@ -41,14 +50,6 @@ class TestAccountMovePricelist(common.TransactionCase):
                 "code": "TEST_RA",
                 "user_type_id": cls.at_receivable.id,
                 "reconcile": True,
-            }
-        )
-        cls.partner = cls.env["res.partner"].create(
-            {
-                "name": "Test Partner",
-                "property_product_pricelist": 1,
-                "property_account_receivable_id": cls.a_receivable.id,
-                "property_account_position_id": cls.fiscal_position.id,
             }
         )
         cls.product = cls.env["product.template"].create(
@@ -69,6 +70,14 @@ class TestAccountMovePricelist(common.TransactionCase):
                         },
                     )
                 ],
+            }
+        )
+        cls.partner = cls.env["res.partner"].create(
+            {
+                "name": "Test Partner",
+                "property_product_pricelist": cls.sale_pricelist.id,
+                "property_account_receivable_id": cls.a_receivable.id,
+                "property_account_position_id": cls.fiscal_position.id,
             }
         )
         cls.sale_pricelist_fixed_without_discount = cls.ProductPricelist.create(
@@ -248,10 +257,7 @@ class TestAccountMovePricelist(common.TransactionCase):
 
     def test_account_invoice_pricelist(self):
         self.invoice._onchange_partner_id_account_invoice_pricelist()
-        self.assertEqual(
-            self.invoice.pricelist_id,
-            self.invoice.partner_id.property_product_pricelist,
-        )
+        self.assertEqual(self.invoice.pricelist_id, self.sale_pricelist)
 
     def test_account_invoice_change_pricelist(self):
         self.invoice.pricelist_id = self.sale_pricelist.id
